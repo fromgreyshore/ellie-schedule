@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌈 Ellie's Super Fun Daily Adventure Schedule! 🌟</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Fredoka+One&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Comic Neue', cursive;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .sparkle {
+            animation: sparkle 2s infinite;
+        }
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+        .bounce {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        .activity-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .activity-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .completed {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            transform: scale(0.95);
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .celebration {
+            animation: celebrate 1s ease-in-out;
+        }
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .day-info {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8 bg-white rounded-3xl p-8 shadow-2xl">
+            <h1 class="title-font text-6xl text-purple-600 mb-4 sparkle">
+                🌈 Ellie's Super Fun Daily Adventure! 🌟
+            </h1>
+            
+            <!-- Dynamic Day Information -->
+            <div class="day-info">
+                <h2 id="currentDay" class="text-2xl font-bold mb-2"></h2>
+                <p id="dayProgress" class="text-lg"></p>
+            </div>
+            
+            <p class="text-2xl text-gray-700 mb-6">
+                Complete your daily quests and become a Super Star! ⭐
+            </p>
+            
+            <!-- Progress Overview -->
+            <div class="flex justify-center mb-6">
+                <div class="bg-gradient-to-r from-pink-300 to-purple-300 rounded-full p-4 relative" style="width: 200px; height: 200px;">
+                    <canvas id="progressChart" width="160" height="160"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div id="progressText" class="text-3xl font-bold text-purple-800">0%</div>
+                            <div class="text-sm text-purple-600">Complete!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Achievement Stars -->
+            <div id="starContainer" class="flex justify-center space-x-2 mb-4">
+                <i class="fas fa-star text-gray-300 text-4xl" data-star="1"></i>
+                <i class="fas fa-star text-gray-300 text-4xl" data-star="2"></i>
+                <i class="fas fa-star text-gray-300 text-4xl" data-star="3"></i>
+                <i class="fas fa-star text-gray-300 text-4xl" data-star="4"></i>
+                <i class="fas fa-star text-gray-300 text-4xl" data-star="5"></i>
+            </div>
+        </div>
+
+        <!-- Daily Activities Grid -->
+        <div id="activitiesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Activities will be dynamically generated here -->
+        </div>
+
+        <!-- Reward System -->
+        <div class="mt-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-3xl p-8 shadow-2xl text-white text-center">
+            <h2 class="title-font text-4xl mb-6">🏆 Ellie's Amazing Rewards! 🏆</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white bg-opacity-20 rounded-2xl p-4">
+                    <div class="text-4xl mb-2">🌟</div>
+                    <h3 class="text-xl font-bold mb-2">Daily Star</h3>
+                    <p class="text-sm">Complete 70% of activities</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-2xl p-4">
+                    <div class="text-4xl mb-2">🎨</div>
+                    <h3 class="text-xl font-bold mb-2">Art Time</h3>
+                    <p class="text-sm">Extra creative activities</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-2xl p-4">
+                    <div class="text-4xl mb-2">🎉</div>
+                    <h3 class="text-xl font-bold mb-2">Special Treat</h3>
+                    <p class="text-sm">Weekend surprise activity</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Motivational Messages -->
+        <div id="motivationBox" class="mt-6 bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-r-2xl hidden">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-star text-yellow-500 text-2xl"></i>
+                </div>
+                <div class="ml-3">
+                    <p id="motivationText" class="text-lg font-medium text-yellow-800"></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Progress tracking variables
+        let completedActivities = 0;
+        let totalActivities = 0;
+        
+        // Date management
+        const startDate = new Date('2024-06-20');
+        const endDate = new Date('2024-08-31');
+        const today = new Date();
+        
+        // Activity pools for variety
+        const activityPools = {
+            morningRoutine: {
+                title: "🌅 Rise & Shine!",
+                time: "7:00 - 8:00 AM",
+                gradient: "from-yellow-200 to-orange-200",
+                textColor: "orange-800",
+                image: "https://thumbs.dreamstime.com/b/kids-routine-actions-tooth-brushing-washing-face-taking-shower-hair-care-girl-ginger-jpeg-image-dpi-rgb-102778269.jpg",
+                activities: [
+                    "🛏️ Wake up and stretch",
+                    "🦷 Brush teeth like a superhero", 
+                    "💧 Wash face and get ready"
+                ]
+            },
+            breakfast: {
+                title: "🍳 Yummy Breakfast!",
+                time: "8:00 - 8:30 AM",
+                gradient: "from-green-200 to-blue-200",
+                textColor: "blue-800",
+                image: "https://thumbs.dreamstime.com/b/cartoon-children-preparing-breakfast-together-family-fun-healthy-eating-illustration-cute-smiles-perfect-380081866.jpg",
+                activities: [
+                    "🥞 Eat a healthy breakfast",
+                    "💧 Drink water or milk",
+                    "🍽️ Help clear dishes"
+                ]
+            },
+            learning: {
+                title: "✏️ Learning Adventure!",
+                time: "9:00 - 11:00 AM",
+                gradient: "from-purple-200 to-pink-200",
+                textColor: "purple-800",
+                image: "https://www.theottoolbox.com/wp-content/uploads/2016/04/tangle-handwriting-art.jpg",
+                activities: [
+                    ["✍️ Handwriting practice", "📝 Journal writing", "🔤 Letter formation"],
+                    ["📚 Reading adventure", "📖 Story exploration", "📕 Comic book time"],
+                    ["🎨 Art and creativity", "🖍️ Coloring masterpiece", "✂️ Craft project"]
+                ]
+            },
+            math: {
+                title: "🔢 Math Magic!",
+                time: "11:15 AM - 12:00 PM",
+                gradient: "from-red-200 to-yellow-200",
+                textColor: "red-800",
+                image: "https://www.21kschool.com/ir/wp-content/uploads/sites/34/2025/01/Free-Maths-Games-for-Kids.png",
+                activities: [
+                    ["🎲 Fun math games", "🧮 Counting games", "🔢 Number puzzles"],
+                    ["🔢 Addition practice", "➖ Subtraction fun", "📏 Measuring objects"],
+                    ["🧩 Logic puzzles", "🎯 Math challenges", "🌟 Number patterns"]
+                ]
+            },
+            lunch: {
+                title: "🍽️ Lunch Time!",
+                time: "12:00 - 1:00 PM",
+                gradient: "from-orange-200 to-red-200",
+                textColor: "orange-800",
+                image: "https://c8.alamy.com/comp/2JM990C/funny-breakfast-food-with-faces-cartoon-illustration-set-cute-porridge-fruits-berries-boiled-egg-biscuits-characters-cups-of-coffee-tea-and-tea-2JM990C.jpg",
+                activities: [
+                    "🥗 Eat nutritious lunch",
+                    "🍴 Practice table manners",
+                    "✨ Help with cleanup"
+                ]
+            },
+            reading: {
+                title: "📖 Story Time!",
+                time: "2:00 - 3:00 PM",
+                gradient: "from-teal-200 to-cyan-200",
+                textColor: "teal-800",
+                image: "https://www.shutterstock.com/image-vector/children-reading-book-nature-600nw-2285394651.jpg",
+                activities: [
+                    ["📚 Adventure stories", "🧚 Fairy tales", "🦄 Fantasy books"],
+                    ["🎭 Act out stories", "🗣️ Tell a story", "🎪 Story performance"],
+                    ["📝 Learn new words", "🔤 Vocabulary game", "📖 Reading challenge"]
+                ]
+            },
+            piano: {
+                title: "🎹 Piano Practice!",
+                time: "3:00 - 4:00 PM",
+                gradient: "from-indigo-200 to-purple-200",
+                textColor: "indigo-800",
+                image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRj4MlLUGK7B5nZCFW8iqVJxHxHGsF3y0DcWg&s",
+                activities: [
+                    ["🎵 Practice scales", "🎶 Finger exercises", "🎼 Music theory"],
+                    ["🎹 Learn new song", "🎵 Practice favorite piece", "🎶 Improvisation time"],
+                    ["🎼 Read sheet music", "👂 Ear training", "🎵 Rhythm practice"]
+                ]
+            },
+            afternoon: {
+                title: "🌞 Afternoon Fun!",
+                time: "4:00 - 5:30 PM",
+                gradient: "from-pink-200 to-rose-200",
+                textColor: "pink-800",
+                image: "https://img.freepik.com/free-vector/children-playing-park-illustration_1308-32397.jpg",
+                activities: [
+                    ["🏃 Outdoor play", "🚴 Bike riding", "⚽ Ball games"],
+                    ["🧩 Puzzle time", "🎲 Board games", "🃏 Card games"],
+                    ["🌱 Garden activities", "🧪 Science experiments", "🔍 Nature exploration"]
+                ]
+            },
+            evening: {
+                title: "🌙 Evening Wind Down!",
+                time: "6:00 - 7:00 PM",
+                gradient: "from-violet-200 to-purple-200",
+                textColor: "violet-800",
+                image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUhKfSMkUlzTjQqf-1sDzZTvUzKzJKQXLbXQ&s",
+                activities: [
+                    ["🎨 Free art time", "🧘 Quiet time", "📚 Read together"],
+                    ["🎭 Imaginative play", "🏠 Help with dinner", "🎵 Listen to music"],
+                    ["✨ Organize room", "📔 Reflect on day", "🌟 Plan tomorrow"]
+                ]
+            }
+        };
+        
+        // Motivational messages
+        const motivationalMessages = [
+            "🌟 Great start, Ellie! You're doing amazing!",
+            "💪 Keep going! You're building great habits!",
+            "🎉 Fantastic job! You're almost there!",
+            "⭐ Outstanding work! You're a superstar!",
+            "🏆 Incredible! You've completed your daily adventure!"
+        ];
+
+        // Initialize the daily schedule
+        function initializeDailySchedule() {
+            updateDayInfo();
+            generateDailyActivities();
+            initializeProgressChart();
+            setupEventListeners();
+            showWelcomeMessage();
+        }
+
+        // Update day information
+        function updateDayInfo() {
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            const dayName = dayNames[today.getDay()];
+            const monthName = monthNames[today.getMonth()];
+            const date = today.getDate();
+            
+            document.getElementById('currentDay').textContent = 
+                `${dayName}, ${monthName} ${date}`;
+            
+            // Calculate progress through summer schedule
+            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const currentDay = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+            
+            if (currentDay > 0 && currentDay <= totalDays) {
+                document.getElementById('dayProgress').textContent = 
+                    `Day ${currentDay} of ${totalDays} in your Summer Adventure!`;
+            } else if (currentDay > totalDays) {
+                document.getElementById('dayProgress').textContent = 
+                    `🎉 Summer Adventure Complete! Keep up the great habits!`;
+            } else {
+                document.getElementById('dayProgress').textContent = 
+                    `🌟 Get ready for your Summer Adventure starting June 20th!`;
+            }
+        }
+
+        // Generate activities for the current day
+        function generateDailyActivities() {
+            const grid = document.getElementById('activitiesGrid');
+            grid.innerHTML = '';
+            
+            // Use day of year as seed for consistent but varied activities
+            const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            
+            // Generate each activity block
+            const schedule = ['morningRoutine', 'breakfast', 'learning', 'math', 'lunch', 'reading', 'piano', 'afternoon', 'evening'];
+            
+            schedule.forEach((activityType, index) => {
+                const activity = activityPools[activityType];
+                const card = createActivityCard(activity, activityType, dayOfYear + index);
+                grid.appendChild(card);
+            });
+            
+            // Update total activities count
+            totalActivities = document.querySelectorAll('.activity-checkbox').length;
+        }
+
+        // Create an activity card
+        function createActivityCard(activity, type, seed) {
+            const card = document.createElement('div');
+            card.className = `activity-card bg-gradient-to-br ${activity.gradient} rounded-3xl p-6 shadow-xl`;
+            
+            // Select activities based on seed for variety
+            let selectedActivities = [];
+            if (Array.isArray(activity.activities[0])) {
+                // Has multiple options per slot
+                activity.activities.forEach((options, i) => {
+                    const option = options[(seed + i) % options.length];
+                    selectedActivities.push(option);
+                });
+            } else {
+                // Fixed activities
+                selectedActivities = activity.activities;
+            }
+            
+            card.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <img src="${activity.image}" 
+                         alt="${activity.title}" class="w-16 h-16 rounded-full object-cover mr-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-${activity.textColor}">${activity.title}</h3>
+                        <p class="text-${activity.textColor} text-sm opacity-75">${activity.time}</p>
+                    </div>
+                </div>
+                <ul class="space-y-3">
+                    ${selectedActivities.map((act, i) => `
+                        <li class="flex items-center">
+                            <input type="checkbox" class="activity-checkbox mr-3 w-5 h-5" data-activity="${type}-${i}">
+                            <span class="text-lg">${act}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+            
+            return card;
+        }
+
+        // Initialize progress chart
+        function initializeProgressChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            window.progressChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#8B5CF6', '#E5E7EB'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Use event delegation for dynamically created checkboxes
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('activity-checkbox')) {
+                    const card = e.target.closest('.activity-card');
+                    
+                    if (e.target.checked) {
+                        completedActivities++;
+                        card.classList.add('completed');
+                        card.classList.add('celebration');
+                        setTimeout(() => card.classList.remove('celebration'), 1000);
+                    } else {
+                        completedActivities--;
+                        card.classList.remove('completed');
+                    }
+                    
+                    updateProgress();
+                    updateStars();
+                    showMotivation();
+                }
+            });
+        }
+
+        // Update progress chart and text
+        function updateProgress() {
+            const percentage = Math.round((completedActivities / totalActivities) * 100);
+            
+            // Update chart
+            if (window.progressChart) {
+                window.progressChart.data.datasets[0].data = [percentage, 100 - percentage];
+                window.progressChart.update();
+            }
+            
+            // Update text
+            document.getElementById('progressText').textContent = percentage + '%';
+        }
+
+        // Update achievement stars
+        function updateStars() {
+            const percentage = (completedActivities / totalActivities) * 100;
+            const stars = document.querySelectorAll('[data-star]');
+            
+            stars.forEach((star, index) => {
+                if (percentage >= (index + 1) * 20) {
+                    star.className = 'fas fa-star text-yellow-400 text-4xl sparkle';
+                } else {
+                    star.className = 'fas fa-star text-gray-300 text-4xl';
+                }
+            });
+        }
+
+        // Show motivational messages
+        function showMotivation() {
+            const percentage = (completedActivities / totalActivities) * 100;
+            const motivationBox = document.getElementById('motivationBox');
+            const motivationText = document.getElementById('motivationText');
+            
+            let messageIndex = Math.floor(percentage / 20);
+            if (messageIndex >= motivationalMessages.length) {
+                messageIndex = motivationalMessages.length - 1;
+            }
+            
+            if (percentage > 0) {
+                motivationText.textContent = motivationalMessages[messageIndex];
+                motivationBox.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    motivationBox.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        // Show welcome message
+        function showWelcomeMessage() {
+            setTimeout(() => {
+                const motivationBox = document.getElementById('motivationBox');
+                const motivationText = document.getElementById('motivationText');
+                motivationText.textContent = "🌈 Welcome to your daily adventure, Ellie! Let's make today amazing!";
+                motivationBox.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    motivationBox.classList.add('hidden');
+                }, 4000);
+            }, 1000);
+        }
+
+        // Add sparkle effects
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.innerHTML = '✨';
+            sparkle.style.position = 'fixed';
+            sparkle.style.left = Math.random() * window.innerWidth + 'px';
+            sparkle.style.top = Math.random() * window.innerHeight + 'px';
+            sparkle.style.fontSize = '20px';
+            sparkle.style.pointerEvents = 'none';
+            sparkle.style.zIndex = '9999';
+            sparkle.style.animation = 'sparkle 2s ease-out forwards';
+            
+            document.body.appendChild(sparkle);
+            
+            setTimeout(() => {
+                sparkle.remove();
+            }, 2000);
+        }
+
+        // Create sparkles periodically
+        setInterval(createSparkle, 3000);
+
+        // Initialize everything when the page loads
+        document.addEventListener('DOMContentLoaded', initializeDailySchedule);
+    </script>
+</body>
+</html>
