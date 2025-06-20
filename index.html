@@ -136,7 +136,56 @@
             </button>
             
             <div class="mt-6 text-gray-500 text-sm">
-                💡 Hint: It's the special number! 
+                💡 Hint: It's the special number!<br>
+                👨‍👩‍👧‍👦 Parents: Use 0000 for dashboard
+            </div>
+        </div>
+    </div>
+
+    <!-- Parent Dashboard (hidden until parent PIN is correct) -->
+    <div id="parentDashboard" class="hidden">
+        <div class="max-w-6xl mx-auto p-4">
+            <div class="bg-white rounded-3xl p-8 shadow-2xl mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="title-font text-4xl text-blue-600">👨‍👩‍👧‍👦 Parent Dashboard</h1>
+                    <button onclick="logout()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                        🚪 Logout
+                    </button>
+                </div>
+                
+                <!-- Progress Summary -->
+                <div id="progressSummary" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <!-- Recent Progress Chart -->
+                <div class="bg-gray-50 rounded-2xl p-6 mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">📈 Recent Progress</h3>
+                    <div id="recentProgress" class="space-y-2">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Export & Tools -->
+                <div class="flex flex-wrap gap-4">
+                    <button onclick="storage.exportData()" class="bg-green-500 text-white px-6 py-3 rounded-xl hover:bg-green-600 font-bold">
+                        💾 Download Progress Data
+                    </button>
+                    <button onclick="showDetailedHistory()" class="bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 font-bold">
+                        📊 Detailed History
+                    </button>
+                    <button onclick="refreshDashboard()" class="bg-purple-500 text-white px-6 py-3 rounded-xl hover:bg-purple-600 font-bold">
+                        🔄 Refresh Data
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Detailed History (initially hidden) -->
+            <div id="detailedHistory" class="bg-white rounded-3xl p-8 shadow-2xl hidden">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">📋 Detailed History</h3>
+                <div id="historyContent">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </div>
@@ -227,10 +276,172 @@
     <script>
         // PIN Protection
         const CORRECT_PIN = '7449';
+        const PARENT_PIN = '0000';
+        
+        // Data Storage System
+        class EllieStorage {
+            constructor() {
+                this.storageKey = 'ellie_schedule_data';
+                this.backupKey = 'ellie_schedule_backup';
+            }
+            
+            // Get today's date string
+            getTodayString() {
+                return new Date().toISOString().split('T')[0];
+            }
+            
+            // Load all data
+            loadData() {
+                try {
+                    const data = localStorage.getItem(this.storageKey);
+                    return data ? JSON.parse(data) : {};
+                } catch (e) {
+                    console.log('Loading backup data...');
+                    try {
+                        const backup = localStorage.getItem(this.backupKey);
+                        return backup ? JSON.parse(backup) : {};
+                    } catch (e2) {
+                        return {};
+                    }
+                }
+            }
+            
+            // Save data with backup
+            saveData(data) {
+                try {
+                    // Save main data
+                    localStorage.setItem(this.storageKey, JSON.stringify(data));
+                    // Save backup copy
+                    localStorage.setItem(this.backupKey, JSON.stringify(data));
+                    console.log('Progress saved successfully!');
+                } catch (e) {
+                    console.error('Failed to save progress:', e);
+                }
+            }
+            
+            // Get today's progress
+            getTodayProgress() {
+                const data = this.loadData();
+                const today = this.getTodayString();
+                return data[today] || { 
+                    completedActivities: [],
+                    totalActivities: 0,
+                    completionRate: 0,
+                    lastUpdated: new Date().toISOString(),
+                    dayNumber: this.calculateDayNumber()
+                };
+            }
+            
+            // Save today's progress
+            saveTodayProgress(completedActivities, totalActivities) {
+                const data = this.loadData();
+                const today = this.getTodayString();
+                const completionRate = Math.round((completedActivities.length / totalActivities) * 100);
+                
+                data[today] = {
+                    completedActivities: completedActivities,
+                    totalActivities: totalActivities,
+                    completionRate: completionRate,
+                    lastUpdated: new Date().toISOString(),
+                    dayNumber: this.calculateDayNumber(),
+                    activities: this.getCurrentActivities()
+                };
+                
+                this.saveData(data);
+                return data[today];
+            }
+            
+            // Calculate which day of summer this is
+            calculateDayNumber() {
+                const startDate = new Date('2024-06-20');
+                const today = new Date();
+                const diffTime = today - startDate;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return Math.max(1, diffDays);
+            }
+            
+            // Get current activities for reference
+            getCurrentActivities() {
+                const activities = [];
+                document.querySelectorAll('.activity-checkbox').forEach(checkbox => {
+                    const activityText = checkbox.nextElementSibling.textContent;
+                    activities.push({
+                        id: checkbox.dataset.activity,
+                        text: activityText,
+                        completed: checkbox.checked
+                    });
+                });
+                return activities;
+            }
+            
+            // Get progress summary
+            getProgressSummary() {
+                const data = this.loadData();
+                const days = Object.keys(data).sort();
+                
+                if (days.length === 0) return null;
+                
+                const totalDays = days.length;
+                const completionRates = days.map(day => data[day].completionRate || 0);
+                const averageCompletion = Math.round(completionRates.reduce((a, b) => a + b, 0) / totalDays);
+                const bestDay = days.find(day => data[day].completionRate === Math.max(...completionRates));
+                const currentStreak = this.calculateCurrentStreak(data, days);
+                
+                return {
+                    totalDays,
+                    averageCompletion,
+                    bestDay,
+                    bestScore: Math.max(...completionRates),
+                    currentStreak,
+                    recentDays: days.slice(-7).map(day => ({
+                        date: day,
+                        completion: data[day].completionRate,
+                        activities: data[day].completedActivities.length
+                    }))
+                };
+            }
+            
+            // Calculate current streak
+            calculateCurrentStreak(data, days) {
+                let streak = 0;
+                for (let i = days.length - 1; i >= 0; i--) {
+                    if (data[days[i]].completionRate >= 70) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
+            }
+            
+            // Export data as JSON
+            exportData() {
+                const data = this.loadData();
+                const summary = this.getProgressSummary();
+                const exportData = {
+                    exportDate: new Date().toISOString(),
+                    summary: summary,
+                    dailyProgress: data
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ellie_progress_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        // Initialize storage system
+        const storage = new EllieStorage();
         
         // Check if already authenticated in this session
         if (sessionStorage.getItem('pinAuthenticated') === 'true') {
             showMainSchedule();
+        } else if (sessionStorage.getItem('parentAuthenticated') === 'true') {
+            showParentDashboard();
         }
         
         // PIN input handling
@@ -278,6 +489,25 @@
                 `;
                 
                 setTimeout(showMainSchedule, 2000);
+            } else if (enteredPin === PARENT_PIN) {
+                // Parent PIN - show parent dashboard
+                sessionStorage.setItem('parentAuthenticated', 'true');
+                pinInput.style.borderColor = '#10B981';
+                pinInput.style.backgroundColor = '#D1FAE5';
+                
+                const pinScreen = document.getElementById('pinScreen');
+                pinScreen.innerHTML = `
+                    <div class="bg-white rounded-3xl p-8 shadow-2xl text-center max-w-md w-full mx-4">
+                        <div class="text-6xl mb-4">👨‍👩‍👧‍👦</div>
+                        <h2 class="title-font text-4xl text-blue-600 mb-4">Parent Dashboard</h2>
+                        <p class="text-gray-600 text-lg mb-6">Loading progress reports...</p>
+                        <div class="flex justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                    </div>
+                `;
+                
+                setTimeout(showParentDashboard, 2000);
             } else {
                 // Wrong PIN - show error
                 pinError.classList.remove('hidden');
@@ -297,8 +527,117 @@
         
         function showMainSchedule() {
             document.getElementById('pinScreen').classList.add('hidden');
+            document.getElementById('parentDashboard').classList.add('hidden');
             document.getElementById('mainSchedule').classList.remove('hidden');
             initializeDailySchedule();
+        }
+        
+        function showParentDashboard() {
+            document.getElementById('pinScreen').classList.add('hidden');
+            document.getElementById('mainSchedule').classList.add('hidden');
+            document.getElementById('parentDashboard').classList.remove('hidden');
+            loadParentDashboard();
+        }
+        
+        function logout() {
+            sessionStorage.clear();
+            document.getElementById('parentDashboard').classList.add('hidden');
+            document.getElementById('mainSchedule').classList.add('hidden');
+            document.getElementById('pinScreen').classList.remove('hidden');
+            // Reset PIN screen
+            location.reload();
+        }
+        
+        function loadParentDashboard() {
+            const summary = storage.getProgressSummary();
+            const summaryDiv = document.getElementById('progressSummary');
+            const recentDiv = document.getElementById('recentProgress');
+            
+            if (!summary) {
+                summaryDiv.innerHTML = '<div class="col-span-4 text-center text-gray-500 text-xl">No progress data yet. Ellie hasn\'t started her schedule!</div>';
+                recentDiv.innerHTML = '<div class="text-gray-500">No recent activity</div>';
+                return;
+            }
+            
+            // Progress Summary Cards
+            summaryDiv.innerHTML = `
+                <div class="bg-gradient-to-r from-blue-400 to-blue-600 text-white p-6 rounded-2xl text-center">
+                    <h4 class="text-lg font-bold">Total Days</h4>
+                    <p class="text-3xl font-bold">${summary.totalDays}</p>
+                </div>
+                <div class="bg-gradient-to-r from-green-400 to-green-600 text-white p-6 rounded-2xl text-center">
+                    <h4 class="text-lg font-bold">Average Score</h4>
+                    <p class="text-3xl font-bold">${summary.averageCompletion}%</p>
+                </div>
+                <div class="bg-gradient-to-r from-purple-400 to-purple-600 text-white p-6 rounded-2xl text-center">
+                    <h4 class="text-lg font-bold">Best Day</h4>
+                    <p class="text-3xl font-bold">${summary.bestScore}%</p>
+                    <p class="text-sm opacity-80">${summary.bestDay}</p>
+                </div>
+                <div class="bg-gradient-to-r from-orange-400 to-orange-600 text-white p-6 rounded-2xl text-center">
+                    <h4 class="text-lg font-bold">Current Streak</h4>
+                    <p class="text-3xl font-bold">${summary.currentStreak}</p>
+                    <p class="text-sm opacity-80">days ≥70%</p>
+                </div>
+            `;
+            
+            // Recent Progress
+            recentDiv.innerHTML = summary.recentDays.map(day => `
+                <div class="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm">
+                    <div>
+                        <span class="font-bold text-gray-800">${day.date}</span>
+                        <span class="text-gray-600 ml-2">(${day.activities} activities completed)</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-32 bg-gray-200 rounded-full h-3 mr-3">
+                            <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full" style="width: ${day.completion}%"></div>
+                        </div>
+                        <span class="font-bold text-lg ${day.completion >= 70 ? 'text-green-600' : 'text-orange-600'}">${day.completion}%</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showDetailedHistory() {
+            const historyDiv = document.getElementById('detailedHistory');
+            const contentDiv = document.getElementById('historyContent');
+            const data = storage.loadData();
+            
+            if (Object.keys(data).length === 0) {
+                contentDiv.innerHTML = '<div class="text-gray-500 text-center">No detailed history available yet.</div>';
+            } else {
+                const sortedDays = Object.keys(data).sort().reverse();
+                contentDiv.innerHTML = sortedDays.map(date => {
+                    const dayData = data[date];
+                    return `
+                        <div class="mb-6 p-4 border rounded-xl">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="text-xl font-bold">${date} (Day ${dayData.dayNumber})</h4>
+                                <span class="text-2xl font-bold ${dayData.completionRate >= 70 ? 'text-green-600' : 'text-orange-600'}">
+                                    ${dayData.completionRate}%
+                                </span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-2">
+                                Completed: ${dayData.completedActivities.length}/${dayData.totalActivities} activities
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                ${dayData.activities ? dayData.activities.map(activity => `
+                                    <div class="flex items-center">
+                                        <span class="mr-2">${activity.completed ? '✅' : '⬜'}</span>
+                                        <span class="${activity.completed ? 'text-green-600' : 'text-gray-400'}">${activity.text}</span>
+                                    </div>
+                                `).join('') : '<div class="text-gray-400">Activity details not available</div>'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            historyDiv.classList.toggle('hidden');
+        }
+        
+        function refreshDashboard() {
+            loadParentDashboard();
         }
 
         // Progress tracking variables
@@ -435,9 +774,54 @@
         function initializeDailySchedule() {
             updateDayInfo();
             generateDailyActivities();
+            loadTodayProgress(); // Load saved progress
             initializeProgressChart();
             setupEventListeners();
             showWelcomeMessage();
+        }
+        
+        // Load today's progress from storage
+        function loadTodayProgress() {
+            const todayData = storage.getTodayProgress();
+            const completedIds = todayData.completedActivities || [];
+            
+            // Restore checkboxes
+            completedActivities = 0;
+            document.querySelectorAll('.activity-checkbox').forEach(checkbox => {
+                if (completedIds.includes(checkbox.dataset.activity)) {
+                    checkbox.checked = true;
+                    checkbox.closest('.activity-card').classList.add('completed');
+                    completedActivities++;
+                }
+            });
+            
+            // Update displays
+            updateProgress();
+            updateStars();
+            
+            // Show restore message if there was previous progress
+            if (completedIds.length > 0) {
+                setTimeout(() => {
+                    const motivationBox = document.getElementById('motivationBox');
+                    const motivationText = document.getElementById('motivationText');
+                    motivationText.textContent = `🔄 Welcome back! Restored your ${completedIds.length} completed activities!`;
+                    motivationBox.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        motivationBox.classList.add('hidden');
+                    }, 4000);
+                }, 1500);
+            }
+        }
+        
+        // Save progress to storage
+        function saveProgress() {
+            const completedIds = [];
+            document.querySelectorAll('.activity-checkbox:checked').forEach(checkbox => {
+                completedIds.push(checkbox.dataset.activity);
+            });
+            
+            storage.saveTodayProgress(completedIds, totalActivities);
         }
 
         // Update day information
@@ -575,6 +959,9 @@
                     updateProgress();
                     updateStars();
                     showMotivation();
+                    
+                    // Save progress to localStorage
+                    saveProgress();
                 }
             });
         }
