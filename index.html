@@ -437,36 +437,48 @@
         // Initialize storage system
         const storage = new EllieStorage();
         
-        // Check if already authenticated in this session
-        if (sessionStorage.getItem('pinAuthenticated') === 'true') {
-            showMainSchedule();
-        } else if (sessionStorage.getItem('parentAuthenticated') === 'true') {
-            showParentDashboard();
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already authenticated in this session
+            if (sessionStorage.getItem('pinAuthenticated') === 'true') {
+                showMainSchedule();
+            } else if (sessionStorage.getItem('parentAuthenticated') === 'true') {
+                showParentDashboard();
+            }
+            
+            // PIN input handling (safe to access DOM elements now)
+            const pinInput = document.getElementById('pinInput');
+            const submitPin = document.getElementById('submitPin');
+            const pinError = document.getElementById('pinError');
+            
+            if (!pinInput || !submitPin || !pinError) {
+                console.error('PIN elements not found! Check HTML structure.');
+                return;
+            }
+            
+            setupPinHandlers(pinInput, submitPin, pinError);
+        });
+        
+        function setupPinHandlers(pinInput, submitPin, pinError) {
+            // Auto-submit when 4 digits are entered
+            pinInput.addEventListener('input', function() {
+                if (this.value.length === 4) {
+                    setTimeout(() => checkPin(pinInput, pinError), 300); // Small delay for better UX
+                }
+            });
+            
+            // Submit button click
+            submitPin.addEventListener('click', () => checkPin(pinInput, pinError));
+            
+            // Enter key press
+            pinInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkPin(pinInput, pinError);
+                }
+            });
         }
         
-        // PIN input handling
-        const pinInput = document.getElementById('pinInput');
-        const submitPin = document.getElementById('submitPin');
-        const pinError = document.getElementById('pinError');
-        
-        // Auto-submit when 4 digits are entered
-        pinInput.addEventListener('input', function() {
-            if (this.value.length === 4) {
-                setTimeout(checkPin, 300); // Small delay for better UX
-            }
-        });
-        
-        // Submit button click
-        submitPin.addEventListener('click', checkPin);
-        
-        // Enter key press
-        pinInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                checkPin();
-            }
-        });
-        
-        function checkPin() {
+        function checkPin(pinInput, pinError) {
             const enteredPin = pinInput.value;
             
             if (enteredPin === CORRECT_PIN) {
@@ -552,6 +564,11 @@
             const summary = storage.getProgressSummary();
             const summaryDiv = document.getElementById('progressSummary');
             const recentDiv = document.getElementById('recentProgress');
+            
+            if (!summaryDiv || !recentDiv) {
+                console.error('Parent dashboard elements not found!');
+                return;
+            }
             
             if (!summary) {
                 summaryDiv.innerHTML = '<div class="col-span-4 text-center text-gray-500 text-xl">No progress data yet. Ellie hasn\'t started her schedule!</div>';
@@ -1050,10 +1067,52 @@
 
         // Create sparkles periodically (only when schedule is visible)
         setInterval(() => {
-            if (!document.getElementById('mainSchedule').classList.contains('hidden')) {
-                createSparkle();
+            if (!document.getElementById('mainSchedule') || document.getElementById('mainSchedule').classList.contains('hidden')) {
+                return;
             }
+            createSparkle();
         }, 3000);
+        
+        // System validation on load
+        function validateSystem() {
+            console.log('🔍 Validating Ellie\'s Schedule System...');
+            
+            // Test 1: Storage system
+            try {
+                const testStorage = new EllieStorage();
+                testStorage.saveData({test: 'validation'});
+                const loadedData = testStorage.loadData();
+                console.log('✅ Storage system working');
+            } catch (e) {
+                console.error('❌ Storage system failed:', e);
+            }
+            
+            // Test 2: Date functions
+            try {
+                const storage = new EllieStorage();
+                const today = storage.getTodayString();
+                const dayNum = storage.calculateDayNumber();
+                console.log(`✅ Date system working: ${today}, Day ${dayNum}`);
+            } catch (e) {
+                console.error('❌ Date system failed:', e);
+            }
+            
+            // Test 3: Activity generation
+            try {
+                if (typeof activityPools !== 'undefined' && Object.keys(activityPools).length > 0) {
+                    console.log('✅ Activity pools loaded:', Object.keys(activityPools).length, 'types');
+                } else {
+                    console.error('❌ Activity pools missing or empty');
+                }
+            } catch (e) {
+                console.error('❌ Activity system failed:', e);
+            }
+            
+            console.log('🎯 System validation complete');
+        }
+        
+        // Run validation after a short delay
+        setTimeout(validateSystem, 1000);
     </script>
 </body>
 </html>
