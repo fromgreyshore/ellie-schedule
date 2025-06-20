@@ -62,91 +62,245 @@
             margin-bottom: 1rem;
             text-align: center;
         }
+        .pin-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .pin-input {
+            font-size: 2rem;
+            letter-spacing: 0.5rem;
+            text-align: center;
+            border: 3px solid #8B5CF6;
+            border-radius: 1rem;
+            padding: 1rem;
+            background: white;
+            color: #4C1D95;
+            font-weight: bold;
+        }
+        .pin-input:focus {
+            outline: none;
+            border-color: #EC4899;
+            box-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
+        }
+        .pin-error {
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4">
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-8 bg-white rounded-3xl p-8 shadow-2xl">
-            <h1 class="title-font text-6xl text-purple-600 mb-4 sparkle">
-                🌈 Ellie's Super Fun Daily Adventure! 🌟
-            </h1>
-            
-            <!-- Dynamic Day Information -->
-            <div class="day-info">
-                <h2 id="currentDay" class="text-2xl font-bold mb-2"></h2>
-                <p id="dayProgress" class="text-lg"></p>
+    <!-- PIN Entry Screen -->
+    <div id="pinScreen" class="pin-screen">
+        <div class="bg-white rounded-3xl p-8 shadow-2xl text-center max-w-md w-full mx-4">
+            <div class="mb-6">
+                <i class="fas fa-lock text-6xl text-purple-600 mb-4 sparkle"></i>
+                <h2 class="title-font text-4xl text-purple-600 mb-2">🔐 Enter PIN</h2>
+                <p class="text-gray-600 text-lg">Enter your 4-digit PIN to access Ellie's schedule!</p>
             </div>
             
-            <p class="text-2xl text-gray-700 mb-6">
-                Complete your daily quests and become a Super Star! ⭐
-            </p>
+            <div class="mb-6">
+                <input 
+                    type="password" 
+                    id="pinInput" 
+                    class="pin-input w-full" 
+                    maxlength="4" 
+                    placeholder="••••"
+                    autofocus
+                >
+            </div>
             
-            <!-- Progress Overview -->
-            <div class="flex justify-center mb-6">
-                <div class="bg-gradient-to-r from-pink-300 to-purple-300 rounded-full p-4 relative" style="width: 200px; height: 200px;">
-                    <canvas id="progressChart" width="160" height="160"></canvas>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <div class="text-center">
-                            <div id="progressText" class="text-3xl font-bold text-purple-800">0%</div>
-                            <div class="text-sm text-purple-600">Complete!</div>
+            <div id="pinError" class="text-red-500 font-bold mb-4 hidden">
+                🚫 Incorrect PIN! Try again.
+            </div>
+            
+            <button 
+                id="submitPin" 
+                class="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-2xl text-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105"
+            >
+                🌟 Enter Schedule! 🌟
+            </button>
+            
+            <div class="mt-6 text-gray-500 text-sm">
+                💡 Hint: It's the special number! 
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Schedule (hidden until PIN is correct) -->
+    <div id="mainSchedule" class="hidden">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8 bg-white rounded-3xl p-8 shadow-2xl">
+                <h1 class="title-font text-6xl text-purple-600 mb-4 sparkle">
+                    🌈 Ellie's Super Fun Daily Adventure! 🌟
+                </h1>
+                
+                <!-- Dynamic Day Information -->
+                <div class="day-info">
+                    <h2 id="currentDay" class="text-2xl font-bold mb-2"></h2>
+                    <p id="dayProgress" class="text-lg"></p>
+                </div>
+                
+                <p class="text-2xl text-gray-700 mb-6">
+                    Complete your daily quests and become a Super Star! ⭐
+                </p>
+                
+                <!-- Progress Overview -->
+                <div class="flex justify-center mb-6">
+                    <div class="bg-gradient-to-r from-pink-300 to-purple-300 rounded-full p-4 relative" style="width: 200px; height: 200px;">
+                        <canvas id="progressChart" width="160" height="160"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div id="progressText" class="text-3xl font-bold text-purple-800">0%</div>
+                                <div class="text-sm text-purple-600">Complete!</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Achievement Stars -->
-            <div id="starContainer" class="flex justify-center space-x-2 mb-4">
-                <i class="fas fa-star text-gray-300 text-4xl" data-star="1"></i>
-                <i class="fas fa-star text-gray-300 text-4xl" data-star="2"></i>
-                <i class="fas fa-star text-gray-300 text-4xl" data-star="3"></i>
-                <i class="fas fa-star text-gray-300 text-4xl" data-star="4"></i>
-                <i class="fas fa-star text-gray-300 text-4xl" data-star="5"></i>
-            </div>
-        </div>
-
-        <!-- Daily Activities Grid -->
-        <div id="activitiesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Activities will be dynamically generated here -->
-        </div>
-
-        <!-- Reward System -->
-        <div class="mt-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-3xl p-8 shadow-2xl text-white text-center">
-            <h2 class="title-font text-4xl mb-6">🏆 Ellie's Amazing Rewards! 🏆</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white bg-opacity-20 rounded-2xl p-4">
-                    <div class="text-4xl mb-2">🌟</div>
-                    <h3 class="text-xl font-bold mb-2">Daily Star</h3>
-                    <p class="text-sm">Complete 70% of activities</p>
-                </div>
-                <div class="bg-white bg-opacity-20 rounded-2xl p-4">
-                    <div class="text-4xl mb-2">🎨</div>
-                    <h3 class="text-xl font-bold mb-2">Art Time</h3>
-                    <p class="text-sm">Extra creative activities</p>
-                </div>
-                <div class="bg-white bg-opacity-20 rounded-2xl p-4">
-                    <div class="text-4xl mb-2">🎉</div>
-                    <h3 class="text-xl font-bold mb-2">Special Treat</h3>
-                    <p class="text-sm">Weekend surprise activity</p>
+                
+                <!-- Achievement Stars -->
+                <div id="starContainer" class="flex justify-center space-x-2 mb-4">
+                    <i class="fas fa-star text-gray-300 text-4xl" data-star="1"></i>
+                    <i class="fas fa-star text-gray-300 text-4xl" data-star="2"></i>
+                    <i class="fas fa-star text-gray-300 text-4xl" data-star="3"></i>
+                    <i class="fas fa-star text-gray-300 text-4xl" data-star="4"></i>
+                    <i class="fas fa-star text-gray-300 text-4xl" data-star="5"></i>
                 </div>
             </div>
-        </div>
 
-        <!-- Motivational Messages -->
-        <div id="motivationBox" class="mt-6 bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-r-2xl hidden">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-star text-yellow-500 text-2xl"></i>
+            <!-- Daily Activities Grid -->
+            <div id="activitiesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Activities will be dynamically generated here -->
+            </div>
+
+            <!-- Reward System -->
+            <div class="mt-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-3xl p-8 shadow-2xl text-white text-center">
+                <h2 class="title-font text-4xl mb-6">🏆 Ellie's Amazing Rewards! 🏆</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white bg-opacity-20 rounded-2xl p-4">
+                        <div class="text-4xl mb-2">🌟</div>
+                        <h3 class="text-xl font-bold mb-2">Daily Star</h3>
+                        <p class="text-sm">Complete 70% of activities</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-2xl p-4">
+                        <div class="text-4xl mb-2">🎨</div>
+                        <h3 class="text-xl font-bold mb-2">Art Time</h3>
+                        <p class="text-sm">Extra creative activities</p>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-2xl p-4">
+                        <div class="text-4xl mb-2">🎉</div>
+                        <h3 class="text-xl font-bold mb-2">Special Treat</h3>
+                        <p class="text-sm">Weekend surprise activity</p>
+                    </div>
                 </div>
-                <div class="ml-3">
-                    <p id="motivationText" class="text-lg font-medium text-yellow-800"></p>
+            </div>
+
+            <!-- Motivational Messages -->
+            <div id="motivationBox" class="mt-6 bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded-r-2xl hidden">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-star text-yellow-500 text-2xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p id="motivationText" class="text-lg font-medium text-yellow-800"></p>
+                    </div>
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
+        // PIN Protection
+        const CORRECT_PIN = '7449';
+        
+        // Check if already authenticated in this session
+        if (sessionStorage.getItem('pinAuthenticated') === 'true') {
+            showMainSchedule();
+        }
+        
+        // PIN input handling
+        const pinInput = document.getElementById('pinInput');
+        const submitPin = document.getElementById('submitPin');
+        const pinError = document.getElementById('pinError');
+        
+        // Auto-submit when 4 digits are entered
+        pinInput.addEventListener('input', function() {
+            if (this.value.length === 4) {
+                setTimeout(checkPin, 300); // Small delay for better UX
+            }
+        });
+        
+        // Submit button click
+        submitPin.addEventListener('click', checkPin);
+        
+        // Enter key press
+        pinInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPin();
+            }
+        });
+        
+        function checkPin() {
+            const enteredPin = pinInput.value;
+            
+            if (enteredPin === CORRECT_PIN) {
+                // Correct PIN - show success and redirect
+                sessionStorage.setItem('pinAuthenticated', 'true');
+                pinInput.style.borderColor = '#10B981';
+                pinInput.style.backgroundColor = '#D1FAE5';
+                
+                // Celebration effect
+                const pinScreen = document.getElementById('pinScreen');
+                pinScreen.innerHTML = `
+                    <div class="bg-white rounded-3xl p-8 shadow-2xl text-center max-w-md w-full mx-4">
+                        <div class="text-6xl mb-4 sparkle">🎉</div>
+                        <h2 class="title-font text-4xl text-green-600 mb-4">Welcome Ellie!</h2>
+                        <p class="text-gray-600 text-lg mb-6">Loading your daily adventure...</p>
+                        <div class="flex justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        </div>
+                    </div>
+                `;
+                
+                setTimeout(showMainSchedule, 2000);
+            } else {
+                // Wrong PIN - show error
+                pinError.classList.remove('hidden');
+                pinInput.classList.add('pin-error');
+                pinInput.style.borderColor = '#EF4444';
+                pinInput.value = '';
+                
+                setTimeout(() => {
+                    pinInput.classList.remove('pin-error');
+                    pinInput.style.borderColor = '#8B5CF6';
+                    pinError.classList.add('hidden');
+                }, 2000);
+                
+                pinInput.focus();
+            }
+        }
+        
+        function showMainSchedule() {
+            document.getElementById('pinScreen').classList.add('hidden');
+            document.getElementById('mainSchedule').classList.remove('hidden');
+            initializeDailySchedule();
+        }
+
         // Progress tracking variables
         let completedActivities = 0;
         let totalActivities = 0;
@@ -507,11 +661,12 @@
             }, 2000);
         }
 
-        // Create sparkles periodically
-        setInterval(createSparkle, 3000);
-
-        // Initialize everything when the page loads
-        document.addEventListener('DOMContentLoaded', initializeDailySchedule);
+        // Create sparkles periodically (only when schedule is visible)
+        setInterval(() => {
+            if (!document.getElementById('mainSchedule').classList.contains('hidden')) {
+                createSparkle();
+            }
+        }, 3000);
     </script>
 </body>
 </html>
