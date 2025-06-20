@@ -802,8 +802,10 @@
             const todayData = storage.getTodayProgress();
             const completedIds = todayData.completedActivities || [];
             
-            // Restore checkboxes
+            // Reset counter
             completedActivities = 0;
+            
+            // Restore checkboxes and count completed activities
             document.querySelectorAll('.activity-checkbox').forEach(checkbox => {
                 if (completedIds.includes(checkbox.dataset.activity)) {
                     checkbox.checked = true;
@@ -812,23 +814,28 @@
                 }
             });
             
-            // Update displays
-            updateProgress();
-            updateStars();
-            
-            // Show restore message if there was previous progress
-            if (completedIds.length > 0) {
-                setTimeout(() => {
-                    const motivationBox = document.getElementById('motivationBox');
-                    const motivationText = document.getElementById('motivationText');
-                    motivationText.textContent = `🔄 Welcome back! Restored your ${completedIds.length} completed activities!`;
-                    motivationBox.classList.remove('hidden');
-                    
+            // CRITICAL: Wait for DOM to be ready, then update displays
+            setTimeout(() => {
+                console.log(`📊 Progress restored: ${completedActivities}/${totalActivities} activities`);
+                updateProgress();
+                updateStars();
+                
+                // Show restore message if there was previous progress
+                if (completedIds.length > 0) {
                     setTimeout(() => {
-                        motivationBox.classList.add('hidden');
-                    }, 4000);
-                }, 1500);
-            }
+                        const motivationBox = document.getElementById('motivationBox');
+                        const motivationText = document.getElementById('motivationText');
+                        if (motivationBox && motivationText) {
+                            motivationText.textContent = `🔄 Welcome back! Restored your ${completedIds.length} completed activities!`;
+                            motivationBox.classList.remove('hidden');
+                            
+                            setTimeout(() => {
+                                motivationBox.classList.add('hidden');
+                            }, 4000);
+                        }
+                    }, 1500);
+                }
+            }, 100); // Small delay to ensure DOM elements exist
         }
         
         // Save progress to storage
@@ -889,6 +896,14 @@
             
             // Update total activities count
             totalActivities = document.querySelectorAll('.activity-checkbox').length;
+            console.log(`📊 Generated ${totalActivities} total activities`);
+            
+            // Force initial progress update
+            setTimeout(() => {
+                console.log('🔄 Force updating progress after activity generation...');
+                updateProgress();
+                updateStars();
+            }, 200);
         }
 
         // Create an activity card
@@ -958,9 +973,12 @@
 
         // Setup event listeners
         function setupEventListeners() {
+            console.log('🔧 Setting up event listeners...');
+            
             // Use event delegation for dynamically created checkboxes
             document.addEventListener('change', function(e) {
                 if (e.target.classList.contains('activity-checkbox')) {
+                    console.log('✅ Activity checkbox clicked:', e.target.dataset.activity);
                     const card = e.target.closest('.activity-card');
                     
                     if (e.target.checked) {
@@ -968,11 +986,15 @@
                         card.classList.add('completed');
                         card.classList.add('celebration');
                         setTimeout(() => card.classList.remove('celebration'), 1000);
+                        console.log(`📈 Activity completed! Total: ${completedActivities}/${totalActivities}`);
                     } else {
                         completedActivities--;
                         card.classList.remove('completed');
+                        console.log(`📉 Activity unchecked! Total: ${completedActivities}/${totalActivities}`);
                     }
                     
+                    // Update all displays
+                    console.log('🔄 Updating progress displays...');
                     updateProgress();
                     updateStars();
                     showMotivation();
@@ -981,30 +1003,61 @@
                     saveProgress();
                 }
             });
+            
+            console.log('✅ Event listeners setup complete');
         }
 
         // Update progress chart and text
         function updateProgress() {
+            if (totalActivities === 0) {
+                console.warn('⚠️ Total activities is 0, skipping progress update');
+                return;
+            }
+            
             const percentage = Math.round((completedActivities / totalActivities) * 100);
+            console.log(`📊 Updating progress: ${completedActivities}/${totalActivities} = ${percentage}%`);
             
             // Update chart
             if (window.progressChart) {
                 window.progressChart.data.datasets[0].data = [percentage, 100 - percentage];
                 window.progressChart.update();
+                console.log('✅ Progress chart updated');
+            } else {
+                console.warn('⚠️ Progress chart not found');
             }
             
             // Update text
-            document.getElementById('progressText').textContent = percentage + '%';
+            const progressTextElement = document.getElementById('progressText');
+            if (progressTextElement) {
+                progressTextElement.textContent = percentage + '%';
+                console.log('✅ Progress text updated');
+            } else {
+                console.warn('⚠️ Progress text element not found');
+            }
         }
 
         // Update achievement stars
         function updateStars() {
+            if (totalActivities === 0) {
+                console.warn('⚠️ Total activities is 0, skipping stars update');
+                return;
+            }
+            
             const percentage = (completedActivities / totalActivities) * 100;
             const stars = document.querySelectorAll('[data-star]');
             
+            console.log(`⭐ Updating stars: ${percentage}% completion`);
+            
+            if (stars.length === 0) {
+                console.warn('⚠️ No star elements found');
+                return;
+            }
+            
             stars.forEach((star, index) => {
-                if (percentage >= (index + 1) * 20) {
+                const threshold = (index + 1) * 20;
+                if (percentage >= threshold) {
                     star.className = 'fas fa-star text-yellow-400 text-4xl sparkle';
+                    console.log(`✅ Star ${index + 1} lit up (${threshold}% threshold)`);
                 } else {
                     star.className = 'fas fa-star text-gray-300 text-4xl';
                 }
